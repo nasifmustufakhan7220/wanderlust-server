@@ -33,6 +33,11 @@ app.post('/add-destination', async(req, res)=>{
     const data = req.body;
     const result = await collection.insertOne(data);
     res.send(result);
+});
+
+app.get("/destinations", async(req,res)=>{
+    const result = await collection.find({}).toArray();
+    res.send(result);
 })
 
 app.listen(PORT, ()=>{
