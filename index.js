@@ -24,6 +24,7 @@ export async function connectToMongoDB() {
 const mongoDb = await connectToMongoDB();
 const db = mongoDb.db("wanderlust");
 const collection = db.collection("destination");
+const booking = db.collection("booking");
 
 app.get('/',(req,res)=>{
     res.send({message:"Server is running successfully"});
@@ -60,6 +61,24 @@ app.patch('/destinations/:id', async(req,res)=>{
 app.delete('/destinations/:id', async(req,res)=>{
   const id = req.params.id;
   const result = await collection.deleteOne({_id: new ObjectId(id)});
+  res.send(result);
+});
+
+app.post('/booking', async(req,res)=>{
+  const data = req.body;
+  const result = await booking.insertOne(data);
+  res.send(result);
+});
+
+app.get('/booking/:email', async(req,res)=>{
+  const email = req.params.email;
+  const result = await booking.find({email:email}).toArray();
+  res.json(result);
+});
+
+app.delete('/booking/:id', async(req,res)=>{
+  const id = req.params.id;
+  const result = await booking.deleteOne({_id: id});
   res.send(result);
 })
 
