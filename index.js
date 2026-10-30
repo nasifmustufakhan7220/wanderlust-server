@@ -36,6 +36,7 @@ const verifyToken = async (req, res, next) => {
   }
 
   const token = authHeader.split(" ")[1];
+  console.log(token);
   if (!token || token === "undefined") {
     return res.status(401).send({
       msg: "Unauthorized!",
@@ -45,6 +46,7 @@ const verifyToken = async (req, res, next) => {
     new URL(`${process.env.CLIENT_URL}/api/auth/jwks`),
   );
 
+  console.log(JWKS);
   try {
     const { payload } = await jwtVerify(token, JWKS);
     next();
