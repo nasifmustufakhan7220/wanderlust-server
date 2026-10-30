@@ -2,12 +2,14 @@ import express from "express";
 import { MongoClient, ObjectId } from 'mongodb';
 import 'dotenv/config';
 import cors from "cors"
+import { createRemoteJWKSet, jwtVerify } from "jose";
 
 
 const app = express();
 const PORT = 8000;
 app.use(cors());
 app.use(express.json());
+
 
 
 const client = new MongoClient(process.env.MONGO_URI);
@@ -26,6 +28,48 @@ const db = mongoDb.db("wanderlust");
 const collection = db.collection("destination");
 const booking = db.collection("booking");
 
+const verifyToken = async(req,res,next)=>{
+  const authHeader = req.headers.authorization;
+
+  if(!authHeader){
+    return res.status(401).send({message: "Unauthorized!"})
+  }
+
+  const token = authHeader.split(" ")[1];
+  if(!token){
+    return res.status(401).send({message: "Unauthorized!"});
+  }
+  const JWKS = createRemoteJWKSet(new URL(`http://localhost:3000/api/auth/jwks`));
+
+
+  try {
+    const {payload} = await jwtVerify(token, JWKS)
+    next();
+  } catch (error) {
+     return res.status(500).send({ msg: "Server Error!" });
+  }
+}
+
+const verifyBooking = async(req,res, next)=>{
+  const authHeader = req.headers.authorization;
+  if(!authHeader){
+    return res.status(401).send({message: "Unauthorized!"});
+  }
+
+  const token = authHeader.split(" ")[1];
+  if(!token){
+    return res.status(401).send({message: "Unauthorized!"});
+  }
+
+  const JWTKS = createRemoteJWKSet(new URL(`http://localhost:3000/api/auth/jwks`));
+
+  try {
+    const {payload} = await jwtVerify(token, JWTKS);
+    next();
+  } catch (error) {
+    return res.status(500).send({ msg: "Server Error!" });
+  }
+}
 app.get('/',(req,res)=>{
     res.send({message:"Server is running successfully"});
 });
@@ -41,7 +85,7 @@ app.get("/destinations", async(req,res)=>{
     res.send(result);
 });
 
-app.get("/destinations/:id", async(req, res)=>{
+app.get("/destinations/:id", verifyToken, async(req, res)=>{
   const {id} =  req.params;
   const result = await collection.findOne({_id: new ObjectId(id)});
   res.send(result);
@@ -70,7 +114,7 @@ app.post('/booking', async(req,res)=>{
   res.send(result);
 });
 
-app.get('/booking/:email', async(req,res)=>{
+app.get('/booking/:email', verifyBooking, async(req,res)=>{
   const email = req.params.email;
   const result = await booking.find({email:email}).toArray();
   res.json(result);
